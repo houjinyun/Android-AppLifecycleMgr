@@ -1,0 +1,1 @@
+include ':app', ':lifecycle-annotation', ':lifecycle-api', ':lifecycle-apt', ':module-1', ':lifecycle-plugin'
