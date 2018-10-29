@@ -1,8 +1,8 @@
-###1. 前言
+### 1. 前言
 
 前面有一章讲过组件生命周期管理，参见[Android组件化开发实践（五）：组件生命周期管理](https://www.jianshu.com/p/65433846d38a)。之前只是为了讲解组件生命周期的概念，以及这样做的原因，但是这样实施过程中，会发现在壳工程里会出现很多硬编码，如果你引入的一个组件里有实现BaseAppLike的类，那么你就得在壳工程的Application.onCreate()方法里手动实例化该类，如果你删除一个类似的组件，同样你也得删除与之相应的代码。这显然是不灵活的，因为这要求壳工程的维护者必须知道，该工程引入的组件里有多少类是实现了BaseAppLike的，如果忘记一个或若干个，应用就可能出现问题。所以我们现在的目标就是，怎么去自动识别所有组件的BaseAppLike类，增加或删除组件时，不用修改任何代码。
 
-###2. 实现的思路
+### 2. 实现的思路
 
 那么应用运行时怎么去识别所有实现了BaseAppLike的类，先讲讲我自己的思路，思路理清了之后我们再一步步去技术实现。
 
@@ -22,11 +22,11 @@ __更进一步的思考：__
 1. 怎么制作gradle插件。
 2. 怎么在打包时动态插入字节码。
 
-###3. 从0开始实现
+### 3. 从0开始实现
 
 接下来我们按照步骤来一步步实现，碰到问题就解决问题，看怎么来实现组件生命周期自动注册管理。这里面用到的技术会有：APT、groovy语言、gradle插件技术、ASM动态生成字节码，平时我们开发应用时一般不需要了解这些，所以会有一定的难度。
 
-#####3.1 注解定义
+##### 3.1 注解定义
 在Android Studio中，新建一个Java Library module，我命名为lifecycle-annotation，在该module中创建一个注解类，同时创建一个后面要生成代理类的相关配置，如下图所示：
 
 ![](https://upload-images.jianshu.io/upload_images/5955727-47abaa4614c2a9f4.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
@@ -59,7 +59,7 @@ public class LifeCycleConfig {
 }
 ```
 
-#####3.2 重新定义IAppLike接口
+##### 3.2 重新定义IAppLike接口
 新建一个Android Library module，命名为lifecycle-api，在这个module里定义IAppLike接口，以及一个生命周期管理类。
 
 ![](https://upload-images.jianshu.io/upload_images/5955727-856eb3e7b5561688.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
@@ -126,7 +126,7 @@ public class AppLifeCycleManager {
 }
 ```
 
-#####3.3 使用APT来生成IAppLike的代理类
+##### 3.3 使用APT来生成IAppLike的代理类
 新建一个Java Library module，命名为lifecycle-apt，在该module里实现我们自己的注解处理器。
 
 在build.gradle里修改配置为：
@@ -387,7 +387,7 @@ public class Heima$$ModuleAAppLike$$Proxy implements IAppLike  {
 ```
 关于APT技术，我这里不详解了，不了解的需要自行搜索相关资料来学习。
 
-#####3.4 扫描固定包下面的所有class
+##### 3.4 扫描固定包下面的所有class
 现在终于到了比较关键的一步了，在组件化开发过程中，如果有十多个组件里都有实现IAppLike接口的类，最终我们也会生成10多个代理类，这些代理类都是在同一个包下面。在组件集成到一个工程后，实际上只有一个apk安装包，所有编译后的class文件都被打包到dex文件里，应用运行时实际上是dalvik虚拟机(或者是ART)从dex文件里加载出class信息来运行的。
 
 所以我们的思路是，运行时读取手机里的dex文件，从中读取出所有的class文件名，根据我们前面定义的代理类包名，来判断是不是我们的目标类，这样扫描一遍之后，就得到了固定包名下面所有类的类名了。具体实现，我采用了[Arouter](https://github.com/alibaba/ARouter/tree/master/arouter-api/src/main/java/com/alibaba/android/arouter/utils)框架里的代码，节选出部分核心代码说下：
@@ -477,7 +477,7 @@ public static Set<String> getFileNameByPackageName(Context context, final String
 
 每次应用冷启动时，都要读取一次dex文件并扫描全部class，这个性能损耗是很大的，我们可以做点优化，在扫描成功后将结果缓存下来，下次进来时直接读取缓存文件。
 
-#####3.5 通过gradle插件来动态插入字节码
+##### 3.5 通过gradle插件来动态插入字节码
 前面介绍到的方法，不管怎样都需要在运行时读取dex文件，全量扫描所有的class。那么我们能不能在应用编译成apk时，就已经全量扫描过一次所有的class，并提取出所有实现了IAppLike接口的代理类呢，这样在应用运行时，效率就大大提升了。答案是肯定的，这就是gradle插件、动态插入java字节码技术。
 
 关于gradle插件技术，具体实现请接着看下一章。
@@ -486,12 +486,12 @@ public static Set<String> getFileNameByPackageName(Context context, final String
 
 
 __系列文章__
-[Android组件化开发实践（一）：为什么要进行组件化开发？](https://www.jianshu.com/p/d0f5cf304fa4)
-[Android组件化开发实践（二）：组件化架构设计](https://www.jianshu.com/p/06931c9b78dc)
-[Android组件化开发实践（三）：组件开发规范](https://www.jianshu.com/p/027dabfd47ce)
-[Android组件化开发实践（四）：组件间通信问题](https://www.jianshu.com/p/82b994fe532c)
-[Android组件化开发实践（五）：组件生命周期管理](https://www.jianshu.com/p/65433846d38a)
-[Android组件化开发实践（六）：老项目实施组件化](https://www.jianshu.com/p/4e3d189171e1)
-[Android组件化开发实践（七）：开发常见问题及解决方案](https://www.jianshu.com/p/5f7feaf9f14f)
-[Android组件化开发实践（八）：组件生命周期如何实现自动注册管理](https://www.jianshu.com/p/59368ce8b670)
-[Android组件化开发实践（九）：自定义Gradle插件](https://www.jianshu.com/p/3ec8e9574aaf)
+[Android组件化开发实践（一）：为什么要进行组件化开发？](https://www.jianshu.com/p/d0f5cf304fa4)<br/>
+[Android组件化开发实践（二）：组件化架构设计](https://www.jianshu.com/p/06931c9b78dc)<br/>
+[Android组件化开发实践（三）：组件开发规范](https://www.jianshu.com/p/027dabfd47ce)<br/>
+[Android组件化开发实践（四）：组件间通信问题](https://www.jianshu.com/p/82b994fe532c)<br/>
+[Android组件化开发实践（五）：组件生命周期管理](https://www.jianshu.com/p/65433846d38a)<br/>
+[Android组件化开发实践（六）：老项目实施组件化](https://www.jianshu.com/p/4e3d189171e1)<br/>
+[Android组件化开发实践（七）：开发常见问题及解决方案](https://www.jianshu.com/p/5f7feaf9f14f)<br/>
+[Android组件化开发实践（八）：组件生命周期如何实现自动注册管理](https://www.jianshu.com/p/59368ce8b670)<br/>
+[Android组件化开发实践（九）：自定义Gradle插件](https://www.jianshu.com/p/3ec8e9574aaf)<br/>
