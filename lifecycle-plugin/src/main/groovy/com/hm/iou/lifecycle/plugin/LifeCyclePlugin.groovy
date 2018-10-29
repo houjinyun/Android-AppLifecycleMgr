@@ -8,6 +8,7 @@ class LifeCyclePlugin implements Plugin<Project>{
 
     @Override
     void apply(Project project) {
+        println "------LifeCycle plugin entrance-------"
         def android = project.extensions.getByType(AppExtension)
         android.registerTransform(new LifeCycleTransform(project))
     }

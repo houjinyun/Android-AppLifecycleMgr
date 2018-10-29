@@ -6,6 +6,7 @@ import com.hm.iou.lifecycle.annotation.AppLifeCycle;
 import java.io.Writer;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -16,6 +17,7 @@ import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 import javax.tools.JavaFileObject;
 
@@ -57,6 +59,22 @@ public class AppLikeProcessor extends AbstractProcessor {
                 throw new RuntimeException("Annotation AppLifeCycle can only be used in class.");
             }
             TypeElement typeElement = (TypeElement) element;
+
+            //这里检查一下，使用了该注解的类，同时必须要实现com.hm.lifecycle.api.IAppLike接口，否则会报错，因为我们要实现一个代理类
+            List<? extends TypeMirror> mirrorList = typeElement.getInterfaces();
+            if (mirrorList.isEmpty()) {
+                throw new RuntimeException(typeElement.getQualifiedName() + " must implements interface com.hm.lifecycle.api.IAppLike");
+            }
+            boolean checkInterfaceFlag = false;
+            for (TypeMirror mirror : mirrorList) {
+                if ("com.hm.lifecycle.api.IAppLike".equals(mirror.toString())) {
+                    checkInterfaceFlag = true;
+                }
+            }
+            if (!checkInterfaceFlag) {
+                throw new RuntimeException(typeElement.getQualifiedName() + " must implements interface com.hm.lifecycle.api.IAppLike");
+            }
+
             String fullClassName = typeElement.getQualifiedName().toString();
             if (!mMap.containsKey(fullClassName)) {
                 System.out.println("process class name : " + fullClassName);

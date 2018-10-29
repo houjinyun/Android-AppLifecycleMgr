@@ -55,19 +55,16 @@ public class ClassUtils {
      */
     public static Set<String> getFileNameByPackageName(Context context, final String packageName) throws PackageManager.NameNotFoundException, IOException, InterruptedException {
         final Set<String> classNames = new HashSet<>();
-
+        //获取所有的class源文件，通常为classes.dex文件
         List<String> paths = getSourcePaths(context);
         final CountDownLatch parserCtl = new CountDownLatch(paths.size());
 
         for (final String path : paths) {
-
-            System.out.println("source path : " + path);
-
+            //如果有多个dex文件，我们开启多个线程并发扫描
             DefaultPoolExecutor.getInstance().execute(new Runnable() {
                 @Override
                 public void run() {
                     DexFile dexfile = null;
-
                     try {
                         if (path.endsWith(EXTRACTED_SUFFIX)) {
                             //NOT use new DexFile(path), because it will throw "permission error in /data/dalvik-cache"
@@ -78,7 +75,9 @@ public class ClassUtils {
 
                         Enumeration<String> dexEntries = dexfile.entries();
                         while (dexEntries.hasMoreElements()) {
+                            //遍历读取出所有的class名称，类的全限定名称
                             String className = dexEntries.nextElement();
+                            //如果以我们指定的包名开头，则表示是我们的目标类
                             if (className.startsWith(packageName)) {
                                 classNames.add(className);
                             }
@@ -91,15 +90,12 @@ public class ClassUtils {
                             } catch (Throwable ignore) {
                             }
                         }
-
                         parserCtl.countDown();
                     }
                 }
             });
         }
-
         parserCtl.await();
-
         return classNames;
     }
 

@@ -21,6 +21,7 @@ class AppLikeCodeInjector {
         println("开始执行ASM方法======>>>>>>>>")
 
         File srcFile = ScanUtil.FILE_CONTAINS_INIT_CLASS
+        //创建一个临时jar文件，要修改注入的字节码会先写入该文件里
         def optJar = new File(srcFile.getParent(), srcFile.name + ".opt")
         if (optJar.exists())
             optJar.delete()
@@ -34,7 +35,7 @@ class AppLikeCodeInjector {
             InputStream inputStream = file.getInputStream(jarEntry)
             jarOutputStream.putNextEntry(zipEntry)
 
-            //找到需要插入代码的jar包
+            //找到需要插入代码的class，通过ASM动态注入字节码
             if (ScanUtil.REGISTER_CLASS_FILE_NAME == entryName) {
                 println "insert register code to class >> " + entryName
 
@@ -46,9 +47,10 @@ class AppLikeCodeInjector {
                 classReader.accept(classVisitor, ClassReader.EXPAND_FRAMES)
 
                 byte[] bytes = classWriter.toByteArray()
+                //将注入过字节码的class，写入临时jar文件里
                 jarOutputStream.write(bytes)
-
             } else {
+                //不需要修改的class，原样写入临时jar文件里
                 jarOutputStream.write(IOUtils.toByteArray(inputStream))
             }
             inputStream.close()
@@ -58,9 +60,11 @@ class AppLikeCodeInjector {
         jarOutputStream.close()
         file.close()
 
+        //删除原来的jar文件
         if (srcFile.exists()) {
             srcFile.delete()
         }
+        //重新命名临时jar文件，新的jar包里已经包含了我们注入的字节码了
         optJar.renameTo(srcFile)
     }
 
@@ -75,6 +79,7 @@ class AppLikeCodeInjector {
                                   String[] exception) {
             println "visit method: " + name
             MethodVisitor mv = super.visitMethod(access, name, desc, signature, exception)
+            //找到 AppLifeCycleManager里的loadAppLike()方法
             if ("loadAppLike" == name) {
                 mv = new LoadAppLikeMethodAdapter(mv, access, name, desc)
             }

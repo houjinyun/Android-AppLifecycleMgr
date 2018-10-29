@@ -49,6 +49,7 @@ public class AppLifeCycleManager {
      *
      */
     private static void registerAppLike(IAppLike appLike) {
+        //标志我们已经通过插件注入代码了
         REGISTER_BY_PLUGIN = true;
         APP_LIKE_LIST.add(appLike);
     }

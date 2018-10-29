@@ -1,5 +1,18 @@
 apply plugin: 'com.android.application'
-//apply plugin: 'com.hm.plugin.lifecycle'
+
+/*apply plugin: 'com.hm.plugin.lifecycle'
+buildscript {
+    repositories {
+        google()
+        jcenter()
+        //自定义插件maven地址
+        maven { url 'file:///Users/hjy/.m2/repository/' }
+    }
+    dependencies {
+        //加载自定义插件
+        classpath 'com.heima.iou:hmlifecyclepluginlocal:1.0.0'
+    }
+}*/
 
 android {
     compileSdkVersion 27
